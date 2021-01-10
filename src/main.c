@@ -8,10 +8,15 @@
 
   @brief        LSH (Libstephen SHell)
 
+  @editor	Mario Vrdoljak
+
+
 *******************************************************************************/
 
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +28,12 @@
 int lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
+int lsh_pwd();
+int lsh_mkdir(char **args);
+int lsh_touch(char **args);
+int lsh_rmdir(char **args);
+int lsh_rm(char **args);
+int lsh_clear();
 
 /*
   List of builtin commands, followed by their corresponding functions.
@@ -30,13 +41,25 @@ int lsh_exit(char **args);
 char *builtin_str[] = {
   "cd",
   "help",
-  "exit"
+  "exit",
+  "pwd",
+  "mkdir",
+  "touch",
+  "rmdir",
+  "rm",
+  "clear"
 };
 
 int (*builtin_func[]) (char **) = {
   &lsh_cd,
   &lsh_help,
-  &lsh_exit
+  &lsh_exit,
+  &lsh_pwd,
+  &lsh_mkdir,
+  &lsh_touch,
+  &lsh_rmdir,
+  &lsh_rm,
+  &lsh_clear
 };
 
 int lsh_num_builtins() {
@@ -72,7 +95,7 @@ int lsh_cd(char **args)
 int lsh_help(char **args)
 {
   int i;
-  printf("Stephen Brennan's LSH\n");
+  printf("Stephen Brennan's LSH edited by Mario\n");
   printf("Type program names and arguments, and hit enter.\n");
   printf("The following are built in:\n");
 
@@ -92,6 +115,86 @@ int lsh_help(char **args)
 int lsh_exit(char **args)
 {
   return 0;
+}
+
+/*
+    Added by Mario
+*/
+int lsh_pwd()
+{
+    char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("%s\n", cwd);
+    } else {
+        printf("Error getting current working directory\n");
+    }
+    return 1;
+}
+
+int lsh_mkdir(char **args)
+{
+    if (!args[1]) {
+        fprintf(stderr, "lsh: expected argument to \"mkdir\"\n");
+    } else {
+        int i = 1;
+        while (args[i] != NULL) {
+            if (mkdir(args[i++], 0774) != 0) {
+                perror("lsh");
+            }
+        }
+    }
+    return 1;
+}
+
+int lsh_touch(char **args)
+{
+    if (!args[1]) {
+        fprintf(stderr, "lsh: expected argument to \"touch\"\n");
+    } else {
+        int i = 1;
+        while (args[i] != NULL) { 
+           if (open(args[i++], 0774) == -1) {
+                perror("lsh");
+            }
+        }
+    }
+    return 1;
+}
+
+int lsh_rmdir(char **args)
+{
+    if (!args[1]) {
+        fprintf(stderr, "lsh: expected argument to \"rmdir\"\n");
+    } else {
+        int i = 1;
+        while (args[i] != NULL) {
+            if (rmdir(args[i++]) != 0) {
+                perror("lsh");
+            }
+        }
+    }
+    return 1;
+}
+
+int lsh_rm(char **args)
+{
+    if (!args[1]) {
+        fprintf(stderr, "lsh: expected argument to \"rm\"\n");
+    } else {
+        int i = 1;
+        while (args[i] != NULL) {
+            if (remove(args[i++]) != 0) {
+                perror("lsh");
+            }
+        }
+    }
+    return 1;
+}
+
+int lsh_clear() 
+{
+    system("@cls||clear");
+    return 1;    
 }
 
 /**
@@ -254,7 +357,12 @@ void lsh_loop(void)
   int status;
 
   do {
-    printf("> ");
+    char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("%s $ ", cwd);
+    } else {
+        printf(" $ ");
+    }
     line = lsh_read_line();
     args = lsh_split_line(line);
     status = lsh_execute(args);
