@@ -126,7 +126,7 @@ int lsh_pwd()
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         printf("%s\n", cwd);
     } else {
-        printf("Error getting current working directory\n");
+        perror("lsh");
     }
     return 1;
 }
